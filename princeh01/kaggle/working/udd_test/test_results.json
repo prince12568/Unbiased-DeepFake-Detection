@@ -1,0 +1,23 @@
+{
+  "all": {
+    "frame_auc": 0.6148073476702509,
+    "video_auc": 0.6308243727598566,
+    "frame_acc": 0.8,
+    "n_frames": 160,
+    "n_videos": 40
+  },
+  "ffpp": {
+    "frame_auc": 0.5632878151260505,
+    "video_auc": 0.546218487394958,
+    "frame_acc": 0.75,
+    "n_frames": 96,
+    "n_videos": 24
+  },
+  "celebdf": {
+    "frame_auc": 0.7723214285714286,
+    "video_auc": 0.8928571428571428,
+    "frame_acc": 0.875,
+    "n_frames": 64,
+    "n_videos": 16
+  }
+}

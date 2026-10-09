@@ -1,0 +1,32 @@
+[
+ {
+  "epoch": 1,
+  "train_loss": 0.6420445442199707,
+  "train_acc": 0.734375,
+  "img_per_s": 15.576658663116618,
+  "epoch_min": 0.08366909424463907,
+  "val": {
+   "all": {
+    "frame_auc": 0.3888888888888889,
+    "video_auc": 0.3584229390681004,
+    "frame_acc": 0.775,
+    "n_frames": 80,
+    "n_videos": 40
+   },
+   "ffpp": {
+    "frame_auc": 0.328125,
+    "video_auc": 0.29999999999999993,
+    "frame_acc": 0.7380952380952381,
+    "n_frames": 42,
+    "n_videos": 21
+   },
+   "celebdf": {
+    "frame_auc": 0.5,
+    "video_auc": 0.48333333333333334,
+    "frame_acc": 0.8157894736842105,
+    "n_frames": 38,
+    "n_videos": 19
+   }
+  }
+ }
+]
