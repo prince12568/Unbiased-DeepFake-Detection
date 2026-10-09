@@ -1,0 +1,12 @@
+{
+  "Baseline": {
+    "center_mass_mean": 0.3819016038614791,
+    "n": 512,
+    "uniform_expected": 0.1836734693877551
+  },
+  "UDD": {
+    "center_mass_mean": 0.21694890613434836,
+    "n": 512,
+    "uniform_expected": 0.1836734693877551
+  }
+}

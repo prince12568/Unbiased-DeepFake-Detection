@@ -1,0 +1,326 @@
+{
+  "clean": {
+    "Baseline": {
+      "frame_auc": 0.9826140625,
+      "video_auc": 0.9933444444444444,
+      "n_frames": 6000
+    },
+    "UDD": {
+      "frame_auc": 0.9815001736111112,
+      "video_auc": 0.9930333333333333,
+      "n_frames": 6000
+    }
+  },
+  "perts": {
+    "blur": {
+      "1": {
+        "Baseline": {
+          "frame_auc": 0.8138895833333334,
+          "video_auc": 0.8449999999999998,
+          "n_frames": 6000
+        },
+        "UDD": {
+          "frame_auc": 0.7888708333333333,
+          "video_auc": 0.8355166666666667,
+          "n_frames": 6000
+        }
+      },
+      "2": {
+        "Baseline": {
+          "frame_auc": 0.7903262152777778,
+          "video_auc": 0.8206222222222223,
+          "n_frames": 6000
+        },
+        "UDD": {
+          "frame_auc": 0.7681166666666666,
+          "video_auc": 0.8085,
+          "n_frames": 6000
+        }
+      },
+      "3": {
+        "Baseline": {
+          "frame_auc": 0.7019909722222222,
+          "video_auc": 0.7277444444444445,
+          "n_frames": 6000
+        },
+        "UDD": {
+          "frame_auc": 0.7080771701388888,
+          "video_auc": 0.7453055555555556,
+          "n_frames": 6000
+        }
+      },
+      "4": {
+        "Baseline": {
+          "frame_auc": 0.6561198784722222,
+          "video_auc": 0.6769444444444445,
+          "n_frames": 6000
+        },
+        "UDD": {
+          "frame_auc": 0.6787914062499999,
+          "video_auc": 0.7065333333333332,
+          "n_frames": 6000
+        }
+      },
+      "5": {
+        "Baseline": {
+          "frame_auc": 0.6200255208333334,
+          "video_auc": 0.6369444444444444,
+          "n_frames": 6000
+        },
+        "UDD": {
+          "frame_auc": 0.6420761284722222,
+          "video_auc": 0.6647999999999998,
+          "n_frames": 6000
+        }
+      }
+    },
+    "block": {
+      "1": {
+        "Baseline": {
+          "frame_auc": 0.9247730902777778,
+          "video_auc": 0.9535222222222222,
+          "n_frames": 6000
+        },
+        "UDD": {
+          "frame_auc": 0.9507084201388889,
+          "video_auc": 0.972011111111111,
+          "n_frames": 6000
+        }
+      },
+      "2": {
+        "Baseline": {
+          "frame_auc": 0.8826947048611112,
+          "video_auc": 0.9203222222222223,
+          "n_frames": 6000
+        },
+        "UDD": {
+          "frame_auc": 0.9281115451388889,
+          "video_auc": 0.9590888888888889,
+          "n_frames": 6000
+        }
+      },
+      "3": {
+        "Baseline": {
+          "frame_auc": 0.8338677951388889,
+          "video_auc": 0.8798888888888888,
+          "n_frames": 6000
+        },
+        "UDD": {
+          "frame_auc": 0.8991265625,
+          "video_auc": 0.9396666666666667,
+          "n_frames": 6000
+        }
+      },
+      "4": {
+        "Baseline": {
+          "frame_auc": 0.7948357638888889,
+          "video_auc": 0.8537555555555556,
+          "n_frames": 6000
+        },
+        "UDD": {
+          "frame_auc": 0.8624784722222223,
+          "video_auc": 0.9171611111111111,
+          "n_frames": 6000
+        }
+      },
+      "5": {
+        "Baseline": {
+          "frame_auc": 0.7368997395833333,
+          "video_auc": 0.7817222222222222,
+          "n_frames": 6000
+        },
+        "UDD": {
+          "frame_auc": 0.8362606770833333,
+          "video_auc": 0.8717333333333334,
+          "n_frames": 6000
+        }
+      }
+    },
+    "contrast": {
+      "1": {
+        "Baseline": {
+          "frame_auc": 0.9794103298611112,
+          "video_auc": 0.992111111111111,
+          "n_frames": 6000
+        },
+        "UDD": {
+          "frame_auc": 0.9751859374999999,
+          "video_auc": 0.9912666666666667,
+          "n_frames": 6000
+        }
+      },
+      "2": {
+        "Baseline": {
+          "frame_auc": 0.9743842881944443,
+          "video_auc": 0.9891,
+          "n_frames": 6000
+        },
+        "UDD": {
+          "frame_auc": 0.9641110243055555,
+          "video_auc": 0.9837722222222223,
+          "n_frames": 6000
+        }
+      },
+      "3": {
+        "Baseline": {
+          "frame_auc": 0.9635505208333334,
+          "video_auc": 0.9812444444444445,
+          "n_frames": 6000
+        },
+        "UDD": {
+          "frame_auc": 0.9479118055555555,
+          "video_auc": 0.976211111111111,
+          "n_frames": 6000
+        }
+      },
+      "4": {
+        "Baseline": {
+          "frame_auc": 0.9403444444444445,
+          "video_auc": 0.96295,
+          "n_frames": 6000
+        },
+        "UDD": {
+          "frame_auc": 0.9205940104166668,
+          "video_auc": 0.9553444444444444,
+          "n_frames": 6000
+        }
+      },
+      "5": {
+        "Baseline": {
+          "frame_auc": 0.8876133680555556,
+          "video_auc": 0.91735,
+          "n_frames": 6000
+        },
+        "UDD": {
+          "frame_auc": 0.87502734375,
+          "video_auc": 0.9107611111111111,
+          "n_frames": 6000
+        }
+      }
+    },
+    "saturation": {
+      "1": {
+        "Baseline": {
+          "frame_auc": 0.9762512152777778,
+          "video_auc": 0.9895111111111111,
+          "n_frames": 6000
+        },
+        "UDD": {
+          "frame_auc": 0.9687075520833333,
+          "video_auc": 0.9863444444444445,
+          "n_frames": 6000
+        }
+      },
+      "2": {
+        "Baseline": {
+          "frame_auc": 0.9727875868055555,
+          "video_auc": 0.9870999999999999,
+          "n_frames": 6000
+        },
+        "UDD": {
+          "frame_auc": 0.9656972222222221,
+          "video_auc": 0.9844888888888889,
+          "n_frames": 6000
+        }
+      },
+      "3": {
+        "Baseline": {
+          "frame_auc": 0.96737890625,
+          "video_auc": 0.9830888888888889,
+          "n_frames": 6000
+        },
+        "UDD": {
+          "frame_auc": 0.9626419270833333,
+          "video_auc": 0.9828111111111111,
+          "n_frames": 6000
+        }
+      },
+      "4": {
+        "Baseline": {
+          "frame_auc": 0.9659036458333334,
+          "video_auc": 0.9831444444444444,
+          "n_frames": 6000
+        },
+        "UDD": {
+          "frame_auc": 0.9619692708333334,
+          "video_auc": 0.9853777777777778,
+          "n_frames": 6000
+        }
+      },
+      "5": {
+        "Baseline": {
+          "frame_auc": 0.9649901909722223,
+          "video_auc": 0.9833777777777778,
+          "n_frames": 6000
+        },
+        "UDD": {
+          "frame_auc": 0.9642948784722221,
+          "video_auc": 0.9871333333333333,
+          "n_frames": 6000
+        }
+      }
+    },
+    "jpeg": {
+      "1": {
+        "Baseline": {
+          "frame_auc": 0.9246852430555556,
+          "video_auc": 0.9550666666666665,
+          "n_frames": 6000
+        },
+        "UDD": {
+          "frame_auc": 0.91015078125,
+          "video_auc": 0.9350666666666665,
+          "n_frames": 6000
+        }
+      },
+      "2": {
+        "Baseline": {
+          "frame_auc": 0.9019825520833333,
+          "video_auc": 0.9321999999999999,
+          "n_frames": 6000
+        },
+        "UDD": {
+          "frame_auc": 0.87575703125,
+          "video_auc": 0.9017555555555556,
+          "n_frames": 6000
+        }
+      },
+      "3": {
+        "Baseline": {
+          "frame_auc": 0.869615451388889,
+          "video_auc": 0.9037,
+          "n_frames": 6000
+        },
+        "UDD": {
+          "frame_auc": 0.8367341145833334,
+          "video_auc": 0.8690888888888889,
+          "n_frames": 6000
+        }
+      },
+      "4": {
+        "Baseline": {
+          "frame_auc": 0.8251888020833333,
+          "video_auc": 0.8617222222222222,
+          "n_frames": 6000
+        },
+        "UDD": {
+          "frame_auc": 0.7788494791666667,
+          "video_auc": 0.795988888888889,
+          "n_frames": 6000
+        }
+      },
+      "5": {
+        "Baseline": {
+          "frame_auc": 0.7234954861111111,
+          "video_auc": 0.7697222222222222,
+          "n_frames": 6000
+        },
+        "UDD": {
+          "frame_auc": 0.6820158854166667,
+          "video_auc": 0.7162111111111111,
+          "n_frames": 6000
+        }
+      }
+    }
+  }
+}
