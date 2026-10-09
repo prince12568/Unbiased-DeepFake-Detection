@@ -2,15 +2,8 @@
 opencv-python-headless>=4.8.0
 numpy>=1.24.0
 tqdm>=4.65.0
-
-# Face detection — install ONE of the following (in order of preference):
-
-# Option A: insightface + onnxruntime  (fastest, RetinaFace via ONNX, recommended)
+facenet-pytorch
+Pillow
+torch
 insightface>=0.7.3
-onnxruntime>=1.16.0       # use onnxruntime-gpu if you have CUDA
-
-# Option B: retina-face (deepface's bundled version, heavier but easy to install)
-# retina-face>=0.0.14
-
-# Note: if neither insightface nor retinaface is installed,
-# the script falls back to OpenCV's Haar cascade automatically.
+onnxruntime>=1.16.0
