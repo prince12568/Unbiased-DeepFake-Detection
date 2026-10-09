@@ -1,9 +1,0 @@
-# Core
-opencv-python-headless>=4.8.0
-numpy>=1.24.0
-tqdm>=4.65.0
-facenet-pytorch
-Pillow
-torch
-insightface>=0.7.3
-onnxruntime>=1.16.0
