@@ -1,36 +1,90 @@
 # Unbiased Deepfake Detection (UDD) — Replication
 
-## 1. Paper Being Replicated
+**Paper:** [Exploring Unbiased Deepfake Detection via Token-Level Shuffling and Mixing](https://arxiv.org/abs/2501.04376)  
+**Authors:** Fu et al. · AAAI 2025  
+**Team:** Shlok Divyam (B24CS042) · Prince Hadke (B24DS022) — IIT Bhilai
 
-**Title:** Exploring Unbiased Deepfake Detection via Token-Level Shuffling and Mixing (UDD)
-**Authors:** Fu et al.
-**Venue:** AAAI 2025
-**arXiv:** [2501.04376](https://arxiv.org/abs/2501.04376)
+---
 
-## 2. Architecture
+## Overview
 
-The paper identifies two biases that hurt deepfake-detector generalization: **position bias** and **content bias**. UDD is a plug-and-play ViT-based detector with three forward branches per image:
+This repo contains a from-scratch replication of the UDD framework. No official code was released by the authors; the entire pipeline was derived from the paper text.
 
-1. **Original branch**: normal ViT forward pass (CLIP ViT-B/16, `vit_base_patch16_clip_224.openai` backbone, LoRA fine-tuning).
-2. **Shuffling branch** (intervenes on position bias): patch content tokens are permuted in 2×2 blocks; position embeddings are replaced by a random crop (area 60–196 grid cells, aspect ratio 3/4–4/3) of the 14×14 position-embedding grid, bilinearly resized back. The CLS token and its position embedding are untouched. (Paper Eq. 2: `t_i = pos'_i + e_pi(i)`)
-3. **Mixing branch** (intervenes on content bias): after a random transformer block chosen from the mid stage (blocks 5–8 of 12), 30% of a sample's patch tokens are swapped with the tokens of a same-label partner from the batch. The CLS token is never swapped. (The paper found mid-stage mixing works best, vs. mixing before block 1.)
+UDD tackles two failure modes of ViT-based deepfake detectors:
 
-**Losses** (paper Eq. 5–8):
-- Cross-entropy on all three branches (original, shuffled, mixed).
-- `L_con`: SimCLR-style InfoNCE contrastive loss between a 3-layer MLP projection of (original, shuffled) and (original, mixed) features, temperature 0.1.
-- `L_align`: Jensen-Shannon divergence between the softmax outputs of (original, shuffled) and (original, mixed).
-- `L_total = CE_orig + CE_shuf + CE_mix + 0.1 * L_con + 0.1 * L_align`.
-- Gradients flow through all three branches; no stop-gradient (paper design choice).
+| Bias type | What it means | UDD fix |
+|---|---|---|
+| **Position bias** | Model relies on *where* artifacts appear in the image | Shuffling Branch — 2×2 block shuffle of patch tokens + randomised position embeddings |
+| **Content bias** | Model relies on *which* specific textures/patterns appear | Mixing Branch — mid-network token swap between same-label samples |
 
-## 3. Resources Required
+---
 
-See the official dataset page.
+## Architecture
 
-## 4. Code Setup, Training, and Evaluation
+**Backbone:** ViT-B/16 (`vit_base_patch16_clip_224.openai`), CLIP-initialized, fine-tuned via LoRA (rank r=4 on Q and V projections of all 12 blocks). All pretrained weights are frozen; only LoRA adapters and the classification head are trained.
 
-> **Note:** All training and evaluation were run in Kaggle Notebooks (T4 and A100-class GPUs). File paths referenced inside the original Kaggle notebooks (e.g. `/kaggle/input/...`, `/kaggle/working/...`) will differ from the actual repo structure below — adapt paths to your own environment/local clone.
+**Three forward branches per sample:**
 
-### 4.1 Clone and install
+1. **Original branch** — standard ViT forward pass. The only branch that contributes to the CE loss.
+2. **Shuffling branch** — patch content tokens permuted as 2×2 blocks (49 blocks, each block shuffled independently per sample); position embeddings replaced by a random rectangular crop of the 14×14 PE grid (area 60–196 cells, aspect ratio 3/4–4/3), bilinearly resized back to 14×14. CLS token and its PE are untouched.
+3. **Mixing branch** — after a randomly chosen transformer block k ∈ [5, 8] (mid-network), ⌊0.3 × 196⌋ = 58 patch tokens are replaced with tokens from a same-label partner in the batch. Drop positions and source positions are sampled **independently** (no spatial correspondence preserved). CLS token is never mixed.
+
+**Loss (Eq. 8 of paper):**
+
+```
+L_total = L_CE + λ1·L_con + λ2·L_align
+
+L_CE     : cross-entropy on the ORIGINAL branch only
+L_con    : InfoNCE(z_orig → z_shuf) + InfoNCE(z_orig → z_mix)
+           (z_orig is the sole anchor; one-directional)
+L_align  : JS(P_orig ∥ P_shuf) + JS(P_orig ∥ P_mix)
+           (JSD on softmax outputs)
+
+λ1 = λ2 = 0.1,  τ = 0.1
+```
+
+The shuffling and mixing branches do **not** contribute separate CE terms. The 3-layer MLP projection head (768 → 768 → 128, ℓ2-normalized) is applied before InfoNCE.
+
+---
+
+## Repository Structure
+
+```
+.
+├── udd_full_pipeline_fixed/          # All training and evaluation code
+│   ├── model.py                      # ViT + LoRA backbone, classification head
+│   ├── data.py                       # Dataset loading, augmentations
+│   ├── shuf_branch.py                # Shuffling Branch (2×2 block shuffle + random PE crop)
+│   ├── mix_branch.py                 # Mixing Branch (mid-network token swap, k∈[5,8])
+│   ├── losses.py                     # UDDLoss: InfoNCE + JSD + ProjectionHead
+│   ├── train_udd.py                  # Full UDD training (Base + Shuf + Mix)
+│   ├── train_ablation_no_shuf.py     # Ablation: Base + Mix only (no Shuffling)
+│   ├── train_ablation_no_mix.py      # Ablation: Base + Shuf only (no Mixing)
+│   ├── evaluate.py                   # Cross-dataset evaluation script
+│   ├── preprocess_all_datasets.py    # Face extraction pipeline (dlib, all datasets)
+│   └── scan_images.py                # Scan for unreadable/corrupt frames
+│
+├── outputs/                          # Saved checkpoints and evaluation results
+│   ├── udd_full/                     # Full UDD model (best.pt, last.pt, history.json)
+│   ├── ablation_no_shuf/             # Base + Mix ablation checkpoints
+│   ├── ablation_no_mix/              # Base + Shuf ablation checkpoints
+│   ├── external_test_evaluation.json # Baseline evaluation results on cross-dataset test split
+│   └── external_test_evaluation.csv  # Same results in CSV format
+│
+├── dataset/                          # Placeholder structure for raw datasets
+│   ├── FaceForensics++/
+│   ├── Celeb-DF-v2/
+│   ├── DFD/
+│   └── DFDC/
+│
+├── dlib_tools/                       # dlib shape predictor model for face alignment
+├── assets/
+└── requirements.txt
+```
+
+---
+
+## Setup
 
 ```bash
 git clone https://github.com/prince12568/Unbiased-DeepFake-Detection.git
@@ -38,133 +92,240 @@ cd Unbiased-DeepFake-Detection
 pip install -r requirements.txt
 ```
 
-### 4.2 Dataset preprocessing
+---
 
-Datasets used: **FaceForensics++** and **Celeb-DF (v2)**. See the official dataset page for access/download.
+## Data Preprocessing
 
-**FaceForensics++ preprocessing:**
+All preprocessing uses dlib for face detection and landmark-based alignment. Frames are extracted from raw videos, faces are detected and aligned, and crops are saved as 224×224 JPEGs into the standard `dataset_processed/` structure.
 
-```bash
-python preprocess_ff_chunked.py \
-    --base_url <redacted> \
-    --output_root <output folder> \
-    --datasets original Deepfakes Face2Face FaceSwap NeuralTextures \
-    --compression c23 \
-    --chunk_size 10 \
-    --frames_per_video 32 \
-    --face_size 224
-```
+The script has three modes: `stage1` (video → aligned crops only), `stage2` (manifest generation only), and `all` (both stages end-to-end).
 
-**Celeb-DF preprocessing** (`preprocess_cdf_chunked.py`): adapted from an earlier Colab notebook pipeline into a standalone script for this repo. For each video it samples 64 frames (evenly spaced first, then random backups), detects the largest confident face per frame with `facenet-pytorch`'s MTCNN (thresholds `[0.6, 0.7, 0.7]`, min face size 40, min confidence 0.95), crops a square region around the face with a 30% margin (padding if the crop goes out of frame), resizes to 224×224, and saves as JPEG (quality 95). Categories are mapped to labels as `Celeb-real` → real, `YouTube-real` → real, `Celeb-synthesis` → fake, and a `manifest.csv` listing all extracted face images is produced.
+**Full pipeline (all datasets):**
 
 ```bash
-python preprocess_cdf_chunked.py \
-    --input_root <path to Celeb-DF raw videos> \
-    --output_root <output folder> \
-    --num_frames 64 \
-    --face_margin 0.3 \
-    --img_size 224 \
-    --jpeg_quality 95 \
-    --min_face_size 40 \
-    --min_confidence 0.95
+python udd_full_pipeline_fixed/preprocess_all_datasets.py all \
+    --ffpp_root    ./dataset/FaceForensics++ \
+    --celebdf_root ./dataset/Celeb-DF-v2 \
+    --dfd_root     ./dataset/DFD \
+    --dfdc_root    ./dataset/DFDC \
+    --dataset_root ./dataset_processed \
+    --train_frames 8 \
+    --val_frames   8 \
+    --test_frames  32 \
+    --val_frac     0.15 \
+    --workers      4 \
+    --seed         42
 ```
-*(Flag names above are inferred from the script's described logic — confirm against `preprocess_cdf_chunked.py --help` if they differ.)*
 
-**Combine datasets and generate split files:**
+**Process only one dataset (e.g. DFDC):**
 
 ```bash
-python prepare_dataset.py
+python udd_full_pipeline_fixed/preprocess_all_datasets.py all \
+    --only DFDC \
+    --dfdc_root    ./dataset/DFDC \
+    --dataset_root ./dataset_processed \
+    --workers      4
 ```
 
-This combines the preprocessed CelebDF and FaceForensics++ outputs (kept together under `udd_dataset/`) and generates `udd_dataset/dataset_relative.csv` and `udd_dataset/dataset_split_relative.json`. Check [`prepare_dataset.py`](https://github.com/prince12568/Unbiased-DeepFake-Detection/blob/main/prepare_dataset.py)'s argparse for any additional flags relevant to your setup.
-
-**Scan for unreadable/corrupt images:**
+**Stage 2 only** (re-generate manifests from already-processed crops):
 
 ```bash
-cd princeh01/kaggle/working/udd_baseline
-python scan_images.py
+python udd_full_pipeline_fixed/preprocess_all_datasets.py stage2 \
+    --dataset_root ./dataset_processed
 ```
 
-This produces `bad_files.txt` in the same working directory.
+This produces `dataset_processed/dataset.csv` and `dataset_processed/dataset_split.json`.
 
-### 4.3 Baseline training
+**Key flags:**
 
-Code: `princeh01/kaggle/working/udd_baseline/` (`train.py`, `model.py`, `data.py`, `scan_images.py`). Outputs (`best.pt`, `last.pt`, `history.json`, `test_results.json`) are saved in this same folder. 64 frames per video were used for the baseline.
+| Flag | Default | Description |
+|---|---|---|
+| `stage` | (required) | `stage1`, `stage2`, or `all` |
+| `--ffpp_root` | — | Path to raw FF++ videos |
+| `--celebdf_root` | — | Path to raw Celeb-DF-v2 videos |
+| `--dfd_root` | — | Path to raw DFD videos |
+| `--dfdc_root` | — | Path to raw DFDC videos |
+| `--dataset_root` | `./dataset_processed` | Output directory for aligned crops + manifests |
+| `--train_frames` | 8 | Target face crops per FF++ training video |
+| `--val_frames` | 8 | Target face crops per FF++ validation video |
+| `--test_frames` | 32 | Target face crops per external test video |
+| `--val_frac` | 0.15 | Fraction of FF++ videos held out for validation |
+| `--only` | — | Restrict to one or more datasets (e.g. `--only DFDC CelebDF`) |
+| `--workers` | 2 | Number of CPU worker processes |
+| `--seed` | 42 | Random seed for train/val split |
+| `--dlib_predictor` | `dlib_tools/shape_predictor_68_face_landmarks.dat` | Path to dlib shape predictor |
+
+**Datasets used:**
+- **FaceForensics++ (c23)** — training (split by `--val_frac`) and in-distribution validation
+- **Celeb-DF v2** — cross-dataset test evaluation
+- **DeepFakeDetection (DFD)** — cross-dataset test evaluation
+- **DFDC-Preview** — cross-dataset test evaluation
+
+---
+
+## Training
+
+All runs use AdamW (lr=5e-4, weight_decay=1e-2, betas=(0.9, 0.999), eps=1e-3), cosine decay with 5-epoch warmup, 100 epochs, effective batch size 64 (gradient accumulation, gradient checkpointing enabled). Training auto-runs `evaluate.py` on completion.
+
+**Full UDD (Base + Shuf + Mix):**
 
 ```bash
-python train.py \
-    --epochs 15 \
-    --warmup_epochs 1 \
-    --bad_list /kaggle/working/bad_files.txt \
-    --data_root <path to udd_dataset/> \
-    --split_json <path to udd_dataset/dataset_split_relative.json> \
-    --out_dir <your output dir>
+python udd_full_pipeline_fixed/train_udd.py \
+    --data_root  ./dataset_processed \
+    --split_json ./dataset_processed/dataset_split.json \
+    --out_dir    outputs/udd_full
 ```
 
-### 4.4 UDD (full) training
-
-Code: `udd_full/udd_full/` (`train_udd.py`, `model.py`, `data.py`, `shuf_branch.py`, `mix_branch.py`, `losses.py`, `scan_images.py`). Outputs (`best.pt`, `last.pt`, `history.json`, `test_results.json`) are saved in this same folder.
+**Ablations:**
 
 ```bash
-python train_udd.py \
-    --epochs 15 \
-    --warmup_epochs 1 \
-    --data_root <path to udd_dataset/> \
-    --split_json <path to udd_dataset/dataset_split_relative.json> \
-    --bad_list <path to bad_files.txt> \
-    --out_dir udd_full/udd_full
+# Base + Shuf only (no Mixing Branch)
+python udd_full_pipeline_fixed/train_ablation_no_mix.py \
+    --data_root  ./dataset_processed \
+    --split_json ./dataset_processed/dataset_split.json \
+    --out_dir    outputs/ablation_no_mix
+
+# Base + Mix only (no Shuffling Branch)
+python udd_full_pipeline_fixed/train_ablation_no_shuf.py \
+    --data_root  ./dataset_processed \
+    --split_json ./dataset_processed/dataset_split.json \
+    --out_dir    outputs/ablation_no_shuf
 ```
 
-Implementation notes:
-- Backbone: `vit_base_patch16_clip_224.openai` (CLIP ViT-B/16), LoRA fine-tuning (`lora_rank=4`).
-- Trained using `nn.DataParallel` across 2× T4 GPUs: 32 images/GPU, effective batch size 64 (falls back to batch 32 × grad-accum 2 on a single GPU). Pass `--no_dp` to disable DataParallel.
-- `mix_ratio=0.30`; mixing happens after a random block in the range 5–8 (mid stage).
-- Before the full 15-epoch run, the following validation steps were run: (a) unit tests on `shuf_branch.py`, `mix_branch.py`, `losses.py`; (b) an equivalence check confirming that with shuffling/mixing disabled the branches reproduce the normal forward pass exactly; (c) a 1-epoch smoke test on 40 videos.
-
-### 4.5 Evaluation
-
-Code: `evaluation/` (`eval_core.py`, `run_eval.py`, `make_plots.py`). Outputs are saved to `udd_eval_results/`.
-
-**1. Compute metrics for both models:**
+**Evaluate only** (skip training, run evaluation on an existing checkpoint):
 
 ```bash
-python run_eval.py --stage metrics \
-    --models Baseline=<path to udd_baseline/best.pt> UDD=<path to udd_full/udd_full/best.pt> \
-    --data_root <path to udd_dataset/> \
-    --split_json <path to udd_dataset/dataset_split_relative.json> \
-    --bad_list <path to bad_files.txt> \
-    --out_dir <output dir>
+python udd_full_pipeline_fixed/train_udd.py \
+    --data_root  ./dataset_processed \
+    --split_json ./dataset_processed/dataset_split.json \
+    --out_dir    outputs/udd_full \
+    --eval_only
 ```
 
-**2. Generate additional analyses (cutout robustness, robustness curves, t-SNE, attention maps, Grad-CAM):**
+**Key flags (all train scripts share the same interface):**
+
+| Flag | Default | Description |
+|---|---|---|
+| `--data_root` | (required) | Path to `dataset_processed/` |
+| `--split_json` | (required) | Path to `dataset_split.json` |
+| `--out_dir` | (required) | Output directory for checkpoints and logs |
+| `--dataset_csv` | `<data_root>/dataset.csv` | Master manifest CSV |
+| `--epochs` | 100 | Total training epochs |
+| `--batch_size` | 64 | Effective batch size |
+| `--per_gpu_batch` | 32 | Per-GPU batch (gradient accumulation computed automatically) |
+| `--lr` | 5e-4 | Learning rate |
+| `--weight_decay` | 1e-2 | AdamW weight decay |
+| `--warmup_epochs` | 5 | Linear warmup epochs |
+| `--lora_rank` | 4 | LoRA rank for Q and V projections |
+| `--mix_ratio` | 0.30 | Fraction of patch tokens to mix (γ) |
+| `--mix_layer_min/max` | 5/8 | Range for mixing injection block k |
+| `--lambda1` | 0.1 | Weight for L_con (InfoNCE) |
+| `--lambda2` | 0.1 | Weight for L_align (JSD) |
+| `--temperature` | 0.10 | InfoNCE temperature τ |
+| `--proj_dim` | 128 | Projection head output dimension |
+| `--train_frames_per_video` | 8 | Frames sampled per video during training |
+| `--val_frames_per_video` | 8 | Frames sampled per video during validation |
+| `--test_frames_per_video` | 32 | Frames sampled per video during testing |
+| `--frame_sampling` | even | Frame sampling strategy (`even` or `random`) |
+| `--grad_ckpt` | True | Enable gradient checkpointing |
+| `--clip_grad` | 1.0 | Gradient clipping norm |
+| `--seed` | 42 | Random seed |
+| `--eval_only` | — | Skip training; run final evaluation only |
+| `--no_pos_crop` | — | Disable random PE crop in shuffling branch (ablation) |
+| `--class_weight` | — | Optional class weight for cross-entropy |
+| `--time_budget_hours` | 11.0 | Stop training early if this many hours have elapsed |
+
+---
+
+## Evaluation
+
+`evaluate.py` evaluates **all** model checkpoints found under `outputs/` on the external test split (CelebDF, DFD, DFDC) and writes results to `outputs/results.json` and `outputs/results.csv`. It is called automatically at the end of each training run; you can also run it manually.
+
+**Evaluate all checkpoints:**
 
 ```bash
-python run_eval.py --stage cutout robust tsne attention gradcam \
-    --models Baseline=<path to udd_baseline/best.pt> UDD=<path to udd_full/udd_full/best.pt> \
-    --data_root <path to udd_dataset/> \
-    --split_json <path to udd_dataset/dataset_split_relative.json> \
-    --bad_list <path to bad_files.txt> \
-    --out_dir <output dir>
+python udd_full_pipeline_fixed/evaluate.py \
+    --project_root . \
+    --data_root    ./dataset_processed \
+    --outputs_dir  outputs/ \
+    --checkpoint   best
 ```
 
-**3. Generate all plots and the training-history comparison:**
+**Evaluate a specific model:**
 
 ```bash
-python make_plots.py \
-    --out_dir <output dir> \
-    --histories Baseline=<path to udd_baseline/history.json> UDD=<path to udd_full/udd_full/history.json> \
-    --epochs 15 --warmup_epochs 1
+python udd_full_pipeline_fixed/evaluate.py \
+    --project_root . \
+    --data_root    ./dataset_processed \
+    --outputs_dir  outputs/ \
+    --models       udd_full \
+    --checkpoint   best \
+    --output_prefix evaluation_results
 ```
 
-Output includes `summary_table.md`/`.csv`, a full set of plots (ROC curves, confusion matrices, score histograms, PR curves, summary bars, loss curves, etc.), attention maps, Grad-CAM heatmaps, and t-SNE visualizations of CLS features for both models — see `udd_eval_results/plots/` in the repo.
+**Key flags:**
 
-## 5. Results
+| Flag | Default | Description |
+|---|---|---|
+| `--project_root` | script directory | Project root containing `dataset_processed/`, `outputs/`, `udd_full_pipeline_fixed/` |
+| `--data_root` | `<project_root>/dataset_processed` | Processed dataset root |
+| `--dataset_csv` | `<data_root>/dataset.csv` | Master manifest CSV |
+| `--split_json` | `<data_root>/dataset_split.json` | Video-level split JSON |
+| `--outputs_dir` | `<project_root>/outputs` | Directory containing model subdirectories |
+| `--pipeline_dir` | `<project_root>/udd_full_pipeline_fixed` | Directory containing `data.py` and `model.py` |
+| `--checkpoint` | `best` | Which checkpoint to load (`best` or `last`) |
+| `--models` | (all) | Restrict to specific model directory names |
+| `--batch_size` | 64 | Evaluation batch size |
+| `--num_workers` | 4 | DataLoader workers |
+| `--device` | auto | Device (`auto`, `cpu`, `cuda`, `cuda:0`, …) |
+| `--output_prefix` | `results` | Output file basename (`results.json`, `results.csv`) |
+| `--bad_list` | — | Text file of corrupt frame paths to skip |
+| `--include_root_checkpoint` | — | Also evaluate a checkpoint stored directly in `outputs_dir` |
 
-![Results](assets/results.png)
+Produces per-dataset frame-level and video-level AUC, accuracy, precision, recall, and F1. Video-level scores are obtained by averaging frame-level softmax outputs across all frames of each video.
 
-UDD performs roughly on par with, or slightly ahead of, the baseline across all test splits (All test data, FF++, Celeb-DF), with similar trends visible across frame/video-level AUC, accuracy, ROC curves, and the t-SNE separation of real/fake clusters.
+---
 
-## 6. Authors
+## Results
 
-- Shlok Divyam (B24CS042)
-- Prince Hadke (B24DS022)
+All models trained on **FF++ (c23)**. Evaluated on external cross-dataset test split.  
+vAUC = video-level AUC (%), fAUC = frame-level AUC (%).  
+†= numbers reported in the original paper. ★= our measured results.
+
+### Cross-Dataset AUC (video-level)
+
+| Method | CDF vAUC | CDF fAUC | DFDC vAUC | DFDC fAUC | DFD vAUC | DFD fAUC |
+|---|---|---|---|---|---|---|
+| ViT-B (CLIP) baseline† | 88.41 | 81.70 | 76.07 | 73.50 | 90.04 | 86.60 |
+| Full UDD† | **93.13** | **86.90** | **81.21** | **75.80** | **95.51** | **91.00** |
+| **Baseline (ours)★** | 91.83 | 86.36 | 57.30 | 48.69 | 93.15 | 89.49 |
+| **Full UDD (ours)★** | 88.00 | 82.52 | 60.19 | 54.47 | 92.38 | 88.33 |
+
+> **Note on DFDC:** Our DFDC test subset contains only 202 videos (753 frames). AUC estimates at this scale carry high variance and should be interpreted cautiously.
+
+### Ablation Study (video-level AUC, ★= ours)
+
+| Configuration | CDF | DFDC | DFD |
+|---|---|---|---|
+| Base only★ | 91.83 | 57.30 | 93.15 |
+| Base + Shuf (no Mix)★ | 88.27 | 63.51 | 93.35 |
+| Base + Mix (no Shuf)★ | 88.31 | 72.82 | 93.82 |
+| Base + Shuf + Mix (Full UDD)★ | **88.00** | **60.19** | **92.38** |
+| Base + Shuf (no Mix)† | 90.51 | 80.33 | 92.25 |
+| Base + Mix (no Shuf)† | 91.25 | 81.02 | 94.95 |
+| Base + Shuf + Mix (Full UDD)† | **93.13** | **81.21** | **95.51** |
+
+On DFDC (the hardest OOD benchmark), both branches individually improve over the plain baseline, confirming the paper's bias-removal hypothesis. The gap from paper numbers is primarily attributable to our constrained compute budget (2×T4, gradient checkpointing) and the small DFDC test subset.
+
+---
+
+## Citation
+
+```bibtex
+@inproceedings{fu2025udd,
+  title     = {Exploring Unbiased Deepfake Detection via Token-Level Shuffling and Mixing},
+  author    = {Fu, Xinghe and others},
+  booktitle = {Proceedings of the AAAI Conference on Artificial Intelligence},
+  year      = {2025}
+}
+```
